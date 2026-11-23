@@ -295,7 +295,203 @@ class _DesktopHomeState extends State<DesktopHome> {
 
   Widget _buildSelectedPage() {
     if (_selected == 'Dashboard') return _buildDashboard();
+    if (_selected == 'Create Bill') {
+      return _buildCreateBillPage();
+    }
+    if (_selected == 'Invoice History') {
+      return _buildInvoiceHistoryPage();
+    }
+    if (_selected == 'Process Payment') {
+      return _buildPaymentPage();
+    }
     return _buildSectionPlaceholder();
+  }
+
+  Widget _buildCreateBillPage() {
+    return Column(
+      children: [
+        Container(
+          height: 34,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: Color(0xFFBDBDBD))),
+          ),
+          child: Row(
+            children: [
+              const Text(
+                'Notifications',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+              ),
+              const Spacer(),
+              IconButton(
+                onPressed: () => _showMessage('No new notifications'),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                icon: const Icon(Icons.notifications_none, size: 16),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: _CreateBillForm(
+            onBack: () => setState(() => _selected = 'Dashboard'),
+            onPrint: () => _showMessage('Print bill'),
+            onSend: () => _showMessage('Bill sent'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInvoiceHistoryPage() {
+    return Column(
+      children: [
+        Container(
+          height: 34,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: Color(0xFFBDBDBD))),
+          ),
+          child: Row(
+            children: [
+              const Text(
+                'Notifications',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+              ),
+              const Spacer(),
+              IconButton(
+                onPressed: () => _showMessage('No new notifications'),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                icon: const Icon(Icons.notifications_none, size: 16),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: _InvoiceHistoryView(
+            onBack: () => setState(() => _selected = 'Dashboard'),
+            onMessage: _showMessage,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInventoryForm({
+    required List<String> fields,
+    required String buttonLabel,
+    required String successMessage,
+  }) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var index = 0; index < fields.length; index++) ...[
+              Text(
+                fields[index],
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 7),
+              if (index == 0 && fields[index] == 'Item')
+                DropdownButtonFormField<String>(
+                  initialValue: _inventoryItems.first.name,
+                  items: [
+                    for (final item in _inventoryItems)
+                      DropdownMenuItem(
+                        value: item.name,
+                        child: Text(item.name),
+                      ),
+                  ],
+                  onChanged: (_) {},
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                  ),
+                )
+              else if (fields[index].toLowerCase().contains('site') ||
+                  fields[index].toLowerCase().contains('from site') ||
+                  fields[index].toLowerCase().contains('to site'))
+                DropdownButtonFormField<String>(
+                  initialValue: _inventorySites.first,
+                  items: [
+                    for (final site in _inventorySites)
+                      DropdownMenuItem(value: site, child: Text(site)),
+                  ],
+                  onChanged: (_) {},
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                  ),
+                )
+              else
+                TextField(
+                  keyboardType:
+                      fields[index].toLowerCase().contains('quantity') ||
+                          fields[index].toLowerCase().contains('value') ||
+                          fields[index].toLowerCase().contains('cost')
+                      ? const TextInputType.numberWithOptions(decimal: true)
+                      : TextInputType.text,
+                  decoration: InputDecoration(
+                    hintText: 'Enter ${fields[index].toLowerCase()}',
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+              const SizedBox(height: 14),
+            ],
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.icon(
+                onPressed: () => _showMessage(successMessage),
+                icon: const Icon(Icons.check_rounded, size: 18),
+                label: Text(buttonLabel),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaymentPage() {
+    return Column(
+      children: [
+        _buildNotificationStrip(),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _selected,
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: _responsiveFont(context, 22),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text('Record a customer payment against an invoice.'),
+                const SizedBox(height: 20),
+                _buildInventoryForm(
+                  fields: const [
+                    'Invoice number',
+                    'Customer',
+                    'Amount',
+                    'Payment method',
+                  ],
+                  buttonLabel: 'Record Payment',
+                  successMessage: 'Payment recorded.',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildNotificationStrip() {
@@ -570,6 +766,522 @@ class _DesktopHomeState extends State<DesktopHome> {
   }
 }
 
+class _InvoiceHistoryView extends StatefulWidget {
+  final VoidCallback onBack;
+  final ValueChanged<String> onMessage;
+
+  const _InvoiceHistoryView({required this.onBack, required this.onMessage});
+
+  @override
+  State<_InvoiceHistoryView> createState() => _InvoiceHistoryViewState();
+}
+
+class _InvoiceHistoryViewState extends State<_InvoiceHistoryView>
+    with _ResponsiveTextStyles {
+  static const _statuses = ['Fulfilled', 'Voided', 'On hold'];
+  static const _statusColors = {
+    'Fulfilled': Color(0xFF00D653),
+    'Voided': Color(0xFFF51D35),
+    'On hold': Color(0xFFFFE900),
+  };
+
+  final List<_InvoiceRecord> _invoices = List.generate(
+    8,
+    (index) => _InvoiceRecord(
+      number: 'INV-${(index + 1).toString().padLeft(4, '0')}',
+      total: 10000,
+      date: '6th Jun 2026',
+      time: '12 : 56 pm',
+      status: index == 0
+          ? 'On hold'
+          : index == 1
+          ? 'Voided'
+          : 'Fulfilled',
+    ),
+  );
+
+  String _filter = 'All';
+  String? _dateFilter;
+  int? _expandedIndex;
+
+  List<_InvoiceRecord> get _visibleInvoices => _invoices
+      .where((invoice) => _filter == 'All' || invoice.status == _filter)
+      .toList();
+
+  @override
+  Widget build(BuildContext context) {
+    final horizontalPadding = MediaQuery.sizeOf(context).width < 900
+        ? 16.0
+        : 28.0;
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(
+        horizontalPadding,
+        22,
+        horizontalPadding,
+        22,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1120),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Invoice History',
+                      style: TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  for (final status in _statuses) ...[
+                    _filterButton(status),
+                    const SizedBox(width: 8),
+                  ],
+                  _filterButton('Date', icon: Icons.calendar_today_outlined),
+                ],
+              ),
+              if (_dateFilter != null) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    'Date: $_dateFilter',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF666666),
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 18),
+              _buildInvoiceTable(),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  OutlinedButton(
+                    onPressed: widget.onBack,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.black,
+                      side: const BorderSide(color: Color(0xFFBDBDBD)),
+                      minimumSize: const Size(76, 36),
+                    ),
+                    child: Text(
+                      'Back',
+                      style: _responsiveTextStyle(context, size: 11),
+                    ),
+                  ),
+                  const Spacer(),
+                  FilledButton(
+                    onPressed: () => widget.onMessage('History exported'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(100, 36),
+                    ),
+                    child: Text(
+                      'Export',
+                      style: _responsiveTextStyle(context, size: 11),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _filterButton(String label, {IconData? icon}) {
+    final selected = _filter == label;
+    return OutlinedButton.icon(
+      onPressed: () {
+        if (label == 'Date') {
+          _chooseDate();
+        } else {
+          setState(() {
+            _filter = selected ? 'All' : label;
+            _expandedIndex = null;
+          });
+        }
+      },
+      icon: icon == null ? const SizedBox.shrink() : Icon(icon, size: 12),
+      label: Text(label, style: _responsiveTextStyle(context, size: 10)),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: Colors.black,
+        backgroundColor: selected ? const Color(0xFFE9E9E9) : Colors.white,
+        side: BorderSide(
+          color: selected ? const Color(0xFFBDBDBD) : const Color(0xFFE0E0E0),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        minimumSize: const Size(0, 30),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+    );
+  }
+
+  Future<void> _chooseDate() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: DateTime(2026, 6, 6),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+    );
+    if (date != null) {
+      setState(() => _dateFilter = '${date.day}/${date.month}/${date.year}');
+    }
+  }
+
+  Widget _buildInvoiceTable() {
+    final invoices = _visibleInvoices;
+    return Column(
+      children: [
+        const _InvoiceTableHeader(),
+        if (invoices.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'No invoices match this filter.',
+              style: TextStyle(fontSize: 12, color: Color(0xFF777777)),
+            ),
+          ),
+        for (var index = 0; index < invoices.length; index++) ...[
+          _InvoiceHistoryRow(
+            invoice: invoices[index],
+            statusColor: _statusColors[invoices[index].status]!,
+            expanded: _expandedIndex == index,
+            onTap: () => setState(
+              () => _expandedIndex = _expandedIndex == index ? null : index,
+            ),
+          ),
+          if (_expandedIndex == index)
+            _InvoiceDetailPanel(
+              invoice: invoices[index],
+              onVoid: () => setState(() => invoices[index].status = 'Voided'),
+              onClear: () =>
+                  setState(() => invoices[index].status = 'Fulfilled'),
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+class _InvoiceRecord {
+  final String number;
+  final int total;
+  final String date;
+  final String time;
+  String status;
+
+  _InvoiceRecord({
+    required this.number,
+    required this.total,
+    required this.date,
+    required this.time,
+    required this.status,
+  });
+}
+
+class _InvoiceTableHeader extends StatelessWidget {
+  const _InvoiceTableHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    const textStyle = TextStyle(fontSize: 10, fontWeight: FontWeight.w600);
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(8, 0, 8, 7),
+      child: Row(
+        children: [
+          Expanded(flex: 2, child: Text('Invoice Number', style: textStyle)),
+          Expanded(flex: 1, child: Text('Total', style: textStyle)),
+          Expanded(flex: 2, child: Text('Date', style: textStyle)),
+          Expanded(flex: 2, child: Text('Time', style: textStyle)),
+          Expanded(flex: 2, child: Text('Status', style: textStyle)),
+          SizedBox(width: 24),
+        ],
+      ),
+    );
+  }
+}
+
+class _InvoiceHistoryRow extends StatelessWidget {
+  final _InvoiceRecord invoice;
+  final Color statusColor;
+  final bool expanded;
+  final VoidCallback onTap;
+
+  const _InvoiceHistoryRow({
+    required this.invoice,
+    required this.statusColor,
+    required this.expanded,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          height: 34,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFFCECECE)),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Text(
+                  invoice.number,
+                  style: const TextStyle(fontSize: 10),
+                ),
+              ),
+              Expanded(
+                flex: 1,
+                child: Text(
+                  invoice.total.toStringAsGrouped(),
+                  style: const TextStyle(fontSize: 10),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text(invoice.date, style: const TextStyle(fontSize: 10)),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text(invoice.time, style: const TextStyle(fontSize: 10)),
+              ),
+              Expanded(
+                flex: 2,
+                child: Row(
+                  children: [
+                    Text(invoice.status, style: const TextStyle(fontSize: 10)),
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 9,
+                      height: 9,
+                      decoration: BoxDecoration(
+                        color: statusColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                expanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                size: 16,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InvoiceDetailPanel extends StatelessWidget {
+  final _InvoiceRecord invoice;
+  final VoidCallback onVoid;
+  final VoidCallback onClear;
+
+  const _InvoiceDetailPanel({
+    required this.invoice,
+    required this.onVoid,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFF168BFF), width: 1.2),
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  invoice.number,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Text(
+                invoice.total.toStringAsGrouped(),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 18),
+          const Text(
+            'Mr. Mbab     090 000 0000',
+            style: TextStyle(fontSize: 10),
+          ),
+          const SizedBox(height: 12),
+          const Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: Text(
+                  'Item',
+                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  'Location',
+                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  'Quantity',
+                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  'Rate',
+                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  'Amount',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 12),
+          const Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: Text('Premium White A4', style: TextStyle(fontSize: 9)),
+              ),
+              Expanded(child: Text('Lorem', style: TextStyle(fontSize: 9))),
+              Expanded(child: Text('10', style: TextStyle(fontSize: 9))),
+              Expanded(child: Text('1,000', style: TextStyle(fontSize: 9))),
+              Expanded(
+                child: Text(
+                  '10,000',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(fontSize: 9),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              'Payment Breakdown',
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+            ),
+          ),
+          const Divider(height: 12),
+          Row(
+            children: [
+              const Expanded(
+                child: Text('Cash       10,000', style: TextStyle(fontSize: 9)),
+              ),
+              const Expanded(
+                child: Text(
+                  'Total Paid: 10,000',
+                  style: TextStyle(fontSize: 9),
+                ),
+              ),
+              const Expanded(
+                child: Text(
+                  'Total Owing: 0.00',
+                  style: TextStyle(fontSize: 9, color: Colors.red),
+                ),
+              ),
+              const Expanded(
+                child: Text(
+                  'Total Cleared: 10,000',
+                  style: TextStyle(fontSize: 9),
+                ),
+              ),
+              TextButton(
+                onPressed: onVoid,
+                style: TextButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF173D),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(42, 26),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                child: const Text('Void', style: TextStyle(fontSize: 9)),
+              ),
+              const SizedBox(width: 6),
+              FilledButton(
+                onPressed: onClear,
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(82, 26),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                child: const Text(
+                  'Clear Payment',
+                  style: TextStyle(fontSize: 9),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+extension on int {
+  String toStringAsGrouped() {
+    final digits = toString();
+    final buffer = StringBuffer();
+    for (var index = 0; index < digits.length; index++) {
+      if (index > 0 && (digits.length - index) % 3 == 0) buffer.write(',');
+      buffer.write(digits[index]);
+    }
+    return buffer.toString();
+  }
+}
+
+extension on double {
+  String toStringAsGrouped() {
+    final parts = toStringAsFixed(2).split('.');
+    final whole = parts.first;
+    final buffer = StringBuffer();
+    for (var index = 0; index < whole.length; index++) {
+      if (index > 0 && (whole.length - index) % 3 == 0) buffer.write(',');
+      buffer.write(whole[index]);
+    }
+    return '${buffer.toString()}.${parts.last}';
+  }
+}
+
 class _QuickActionsBar extends StatelessWidget {
   final String selected;
   final List<_QuickAction> actions;
@@ -702,6 +1414,58 @@ class _QuickAction {
   const _QuickAction(this.label, this.icon, this.destination);
 }
 
+class _InventoryRow {
+  final String sku;
+  final String name;
+  final String quantity;
+  final String value;
+
+  const _InventoryRow(this.sku, this.name, this.quantity, this.value);
+}
+
+const _defaultQuickActions = [
+  _QuickAction('Home', Icons.menu_rounded, 'Dashboard'),
+  _QuickAction('Bill', Icons.receipt_long_outlined, 'Create Bill'),
+  _QuickAction('Process Payment', Icons.cached_rounded, 'Process Payment'),
+  _QuickAction('Inventory', Icons.inventory_2_outlined, 'Inventory Centre'),
+  _QuickAction('Customers', Icons.people_alt_outlined, 'New Customer'),
+  _QuickAction('Banking', Icons.credit_card_outlined, 'Payment'),
+  _QuickAction('Staff', Icons.badge_outlined, 'Add Staff'),
+  _QuickAction('Print', Icons.print_outlined, 'Print'),
+];
+
+const _allQuickActions = [
+  ..._defaultQuickActions,
+  _QuickAction('Invoice History', Icons.receipt_outlined, 'Invoice History'),
+  _QuickAction('Item List', Icons.list_alt_outlined, 'Item List'),
+  _QuickAction(
+    'Inventory Sites',
+    Icons.store_mall_directory_outlined,
+    'Inventory Site List',
+  ),
+  _QuickAction(
+    'Adjust Stock',
+    Icons.tune_rounded,
+    'Adjust Quantity/Value on Hand',
+  ),
+  _QuickAction(
+    'Transfer Stock',
+    Icons.swap_horiz_rounded,
+    'Transfer Inventory',
+  ),
+  _QuickAction('Receive Item', Icons.move_to_inbox_outlined, 'Receive Item'),
+  _QuickAction('Refund', Icons.currency_exchange_rounded, 'Refund'),
+  _QuickAction('View Users', Icons.group_outlined, 'View All Users'),
+];
+
+const _inventoryPages = {
+  'Item List',
+  'Inventory Site List',
+  'Adjust Quantity/Value on Hand',
+  'Transfer Inventory',
+  'Receive Item',
+};
+
 class _QuickActionButton extends StatelessWidget {
   final _QuickAction action;
   final int index;
@@ -819,6 +1583,437 @@ class _QuickActionButton extends StatelessWidget {
       ),
     );
   }
+}
+
+class _CreateBillForm extends StatefulWidget {
+  final VoidCallback onBack;
+  final VoidCallback onPrint;
+  final VoidCallback onSend;
+
+  const _CreateBillForm({
+    required this.onBack,
+    required this.onPrint,
+    required this.onSend,
+  });
+
+  @override
+  State<_CreateBillForm> createState() => _CreateBillFormState();
+}
+
+class _CreateBillFormState extends State<_CreateBillForm>
+    with _ResponsiveTextStyles {
+  static const _customers = [
+    'Mr. Mbab',
+    'Lorem 1',
+    'Ipsum 1',
+    'Lorem 2',
+    'Ipsum 2',
+  ];
+
+  final List<double> _amounts = [0];
+  String? _customer;
+
+  double get _total => _amounts.fold(0, (total, amount) => total + amount);
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final horizontalPadding = constraints.maxWidth < 700 ? 16.0 : 28.0;
+        return SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            22,
+            horizontalPadding,
+            20,
+          ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1050),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Create Bill',
+                    style: _responsiveTextStyle(
+                      context,
+                      size: 19,
+                      color: Colors.black,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  _buildCustomerInvoiceFields(),
+                  const SizedBox(height: 24),
+                  _buildItemsTable(),
+                  const SizedBox(height: 18),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const Text('Total', style: TextStyle(fontSize: 12)),
+                        const SizedBox(width: 14),
+                        Text(
+                          _total.toStringAsFixed(2),
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  Row(
+                    children: [
+                      OutlinedButton(
+                        onPressed: widget.onBack,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.black,
+                          side: const BorderSide(color: Color(0xFFBBBBBB)),
+                          minimumSize: const Size(76, 36),
+                        ),
+                        child: const Text(
+                          'Back',
+                          style: TextStyle(fontSize: 11),
+                        ),
+                      ),
+                      const Spacer(),
+                      _blackButton('Print', widget.onPrint),
+                      const SizedBox(width: 12),
+                      _blackButton('Send', widget.onSend),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCustomerInvoiceFields() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x15000000),
+            blurRadius: 2,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Wrap(
+        spacing: 24,
+        runSpacing: 12,
+        alignment: WrapAlignment.spaceBetween,
+        children: [
+          SizedBox(
+            width: 340,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Customer's Name",
+                  style: _responsiveTextStyle(context, size: 10),
+                ),
+                const SizedBox(height: 6),
+                DropdownButtonFormField<String>(
+                  initialValue: _customer,
+                  isDense: true,
+                  decoration: _billInputDecoration(),
+                  hint: const Text(
+                    'Select customer',
+                    style: TextStyle(fontSize: 11),
+                  ),
+                  items: _customers
+                      .map(
+                        (name) =>
+                            DropdownMenuItem(value: name, child: Text(name)),
+                      )
+                      .toList(),
+                  onChanged: (value) => setState(() => _customer = value),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildItemsTable() {
+    return Column(
+      children: [
+        const _BillTableHeader(),
+        for (var index = 0; index < _amounts.length; index++)
+          _BillEntryRow(
+            key: ValueKey(index),
+            rowIndex: index,
+            onAmountChanged: (amount) =>
+                setState(() => _amounts[index] = amount),
+          ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: IconButton(
+            tooltip: 'Add item row',
+            onPressed: () => setState(() => _amounts.add(0)),
+            visualDensity: VisualDensity.compact,
+            constraints: const BoxConstraints.tightFor(width: 30, height: 30),
+            padding: EdgeInsets.zero,
+            icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _blackButton(String label, VoidCallback onPressed) {
+    return FilledButton(
+      onPressed: onPressed,
+      style: FilledButton.styleFrom(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        minimumSize: const Size(64, 36),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+      ),
+      child: Text(label),
+    );
+  }
+}
+
+class _BillTableHeader extends StatelessWidget {
+  const _BillTableHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    const style = TextStyle(fontSize: 10, fontWeight: FontWeight.w600);
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(8, 0, 8, 7),
+      child: Row(
+        children: [
+          Expanded(flex: 3, child: Text('Item', style: style)),
+          Expanded(flex: 2, child: Text('Location', style: style)),
+          Expanded(flex: 1, child: Text('Quantity', style: style)),
+          Expanded(flex: 1, child: Text('Rate', style: style)),
+          Expanded(flex: 1, child: Text('Amount', style: style)),
+        ],
+      ),
+    );
+  }
+}
+
+class _BillEntryRow extends StatefulWidget {
+  final int rowIndex;
+  final ValueChanged<double> onAmountChanged;
+
+  const _BillEntryRow({
+    super.key,
+    required this.rowIndex,
+    required this.onAmountChanged,
+  });
+
+  @override
+  State<_BillEntryRow> createState() => _BillEntryRowState();
+}
+
+class _BillEntryRowState extends State<_BillEntryRow> {
+  static const _productRates = <String, double>{
+    'Product 1': 100,
+    'Product 2': 250,
+    'Product 3': 500,
+  };
+  static const _products = ['Product 1', 'Product 2', 'Product 3'];
+  static const _locations = ['Select location', 'Main Store', 'Warehouse'];
+  final _quantityController = TextEditingController();
+  final _rateController = TextEditingController();
+  String? _product;
+  String? _location;
+  double _amount = 0;
+
+  @override
+  void dispose() {
+    _quantityController.dispose();
+    _rateController.dispose();
+    super.dispose();
+  }
+
+  void _updateAmount() {
+    final quantity = double.tryParse(_quantityController.text) ?? 0;
+    final rate = double.tryParse(_rateController.text) ?? 0;
+    final amount = quantity * rate;
+    if (amount != _amount) {
+      setState(() => _amount = amount);
+      widget.onAmountChanged(amount);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 40,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          top: BorderSide(color: Color(0xFFD8D8D8)),
+          left: BorderSide(color: Color(0xFFD8D8D8)),
+          right: BorderSide(color: Color(0xFFD8D8D8)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 3,
+            child: _tableDropdown(
+              key: ValueKey('bill-product-dropdown-${widget.rowIndex}'),
+              value: _product,
+              values: _products,
+              onChanged: (value) {
+                setState(() {
+                  _product = value;
+                  _rateController.text =
+                      _productRates[value]?.toStringAsFixed(2) ?? '';
+                });
+                _updateAmount();
+              },
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: _tableDropdown(
+              key: ValueKey('bill-location-dropdown-${widget.rowIndex}'),
+              value: _location,
+              values: _locations,
+              onChanged: (value) => setState(() => _location = value),
+            ),
+          ),
+          Expanded(
+            child: _tableTextField(
+              _quantityController,
+              onChanged: _updateAmount,
+            ),
+          ),
+          Expanded(
+            child: _tableTextField(_rateController, onChanged: _updateAmount),
+          ),
+          Expanded(
+            child: Container(
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: const BoxDecoration(
+                border: Border(left: BorderSide(color: Color(0xFFD8D8D8))),
+              ),
+              child: Text(
+                _amount == 0 ? '' : _amount.toStringAsFixed(2),
+                style: const TextStyle(fontSize: 11),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tableDropdown({
+    Key? key,
+    required String? value,
+    required List<String> values,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      decoration: const BoxDecoration(
+        border: Border(left: BorderSide(color: Color(0xFFD8D8D8))),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          key: key,
+          value: value,
+          isExpanded: true,
+          isDense: true,
+          hint: const SizedBox.shrink(),
+          icon: const Icon(
+            Icons.arrow_drop_down,
+            size: 16,
+            color: Colors.black,
+          ),
+          items: values
+              .map(
+                (entry) => DropdownMenuItem(
+                  value: entry,
+                  child: Text(
+                    entry,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 10),
+                  ),
+                ),
+              )
+              .toList(),
+          onChanged: onChanged,
+        ),
+      ),
+    );
+  }
+
+  Widget _tableTextField(
+    TextEditingController controller, {
+    required VoidCallback onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      decoration: const BoxDecoration(
+        border: Border(left: BorderSide(color: Color(0xFFD8D8D8))),
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        onChanged: (_) => onChanged(),
+        textAlign: TextAlign.right,
+        decoration: const InputDecoration(
+          border: InputBorder.none,
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(vertical: 10),
+        ),
+        style: const TextStyle(fontSize: 11),
+      ),
+    );
+  }
+}
+
+InputDecoration _billInputDecoration({String? hint}) {
+  return InputDecoration(
+    hintText: hint,
+    hintStyle: const TextStyle(fontSize: 10, color: Color(0xFF9A9A9A)),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+    isDense: true,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(4),
+      borderSide: const BorderSide(color: Color(0xFFBDBDBD)),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(4),
+      borderSide: const BorderSide(color: Color(0xFFBDBDBD)),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(4),
+      borderSide: const BorderSide(color: Color(0xFF777777)),
+    ),
+  );
 }
 
 class _MenuItem {
