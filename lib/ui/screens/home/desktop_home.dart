@@ -314,6 +314,9 @@ class _DesktopHomeState extends State<DesktopHome> {
         _selected == 'Receive Item') {
       return _buildInventoryOperationPage(_selected);
     }
+    if (_selected == 'New Customer') {
+      return _buildNewCustomerPage();
+    }
     return _buildSectionPlaceholder();
   }
 
@@ -1354,6 +1357,42 @@ class _DesktopHomeState extends State<DesktopHome> {
     controller.dispose();
   }
 
+  Widget _buildNewCustomerPage() {
+    return Column(
+      children: [
+        Container(
+          height: 34,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: Color(0xFFBDBDBD))),
+          ),
+          child: Row(
+            children: [
+              const Text(
+                'Notifications',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+              ),
+              const Spacer(),
+              IconButton(
+                onPressed: () => _showMessage('No new notifications'),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                icon: const Icon(Icons.notifications_none, size: 16),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: _NewCustomerForm(
+            onBack: () => setState(() => _selected = 'Dashboard'),
+            onMessage: _showMessage,
+          ),
+        ),
+      ],
+    );
+  }
+
   void _showMessage(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -1597,6 +1636,251 @@ class _DesktopHomeState extends State<DesktopHome> {
       ),
     );
     if (shouldLogout == true && context.mounted) Navigator.pop(context);
+  }
+}
+
+class _NewCustomerForm extends StatefulWidget {
+  final VoidCallback onBack;
+  final ValueChanged<String> onMessage;
+
+  const _NewCustomerForm({required this.onBack, required this.onMessage});
+
+  @override
+  State<_NewCustomerForm> createState() => _NewCustomerFormState();
+}
+
+class _NewCustomerFormState extends State<_NewCustomerForm>
+    with _ResponsiveTextStyles {
+  final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _locationController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    _locationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 900;
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(
+        compact ? 16 : 28,
+        18,
+        compact ? 16 : 28,
+        22,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1120),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: compact ? 1 : 2,
+                child: Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: const Color(0xFFDBDBDB)),
+                    borderRadius: BorderRadius.circular(6),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x14000000),
+                        blurRadius: 3,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Create New Customer',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      _newCustomerField("Customer's Name", _nameController),
+                      const SizedBox(height: 12),
+                      _newCustomerField(
+                        'Phone Number',
+                        _phoneController,
+                        keyboardType: TextInputType.phone,
+                      ),
+                      const SizedBox(height: 12),
+                      _newCustomerField(
+                        'Location (Optional)',
+                        _locationController,
+                      ),
+                      const SizedBox(height: 22),
+                      Row(
+                        children: [
+                          OutlinedButton(
+                            onPressed: widget.onBack,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.black,
+                              side: const BorderSide(color: Color(0xFFBDBDBD)),
+                              minimumSize: const Size(74, 34),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                            ),
+                            child: const Text(
+                              'Back',
+                              style: TextStyle(fontSize: 10),
+                            ),
+                          ),
+                          const Spacer(),
+                          FilledButton(
+                            onPressed: _createCustomer,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Colors.black,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(94, 34),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                            ),
+                            child: const Text(
+                              'Create',
+                              style: TextStyle(fontSize: 10),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (!compact) ...[
+                const SizedBox(width: 18),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: const Color(0xFFDBDBDB)),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Customer Details',
+                          style: _responsiveTextStyle(
+                            context,
+                            size: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _detailRow('Border', '16'),
+                        _detailRow('Padding', '16'),
+                        _detailRow('Pending', '8'),
+                        _detailRow('Refund', '1'),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Customer activity',
+                          style: _responsiveTextStyle(
+                            context,
+                            size: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'New customer profiles are added here and ready for checkout, invoice, and customer history tracking.',
+                          style: _responsiveTextStyle(
+                            context,
+                            size: 11,
+                            color: const Color(0xFF5E5E5E),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _newCustomerField(
+    String label,
+    TextEditingController controller, {
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: _responsiveTextStyle(context, size: 10)),
+          const SizedBox(height: 6),
+          TextField(
+            controller: controller,
+            keyboardType: keyboardType,
+            decoration: _billInputDecoration(),
+            style: _responsiveTextStyle(context, size: 11),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: _responsiveTextStyle(
+                context,
+                size: 10,
+                color: const Color(0xFF5F5F5F),
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: _responsiveTextStyle(
+              context,
+              size: 10,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _createCustomer() {
+    final name = _nameController.text.trim();
+    final phone = _phoneController.text.trim();
+    final location = _locationController.text.trim();
+
+    if (name.isEmpty || phone.isEmpty) {
+      widget.onMessage('Customer name and phone number are required.');
+      return;
+    }
+
+    widget.onMessage(
+      'Customer created for $name${location.isNotEmpty ? ' from $location' : ''}',
+    );
+    _nameController.clear();
+    _phoneController.clear();
+    _locationController.clear();
   }
 }
 
