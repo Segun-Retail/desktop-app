@@ -304,6 +304,16 @@ class _DesktopHomeState extends State<DesktopHome> {
     if (_selected == 'Process Payment') {
       return _buildPaymentPage();
     }
+    if (_selected == 'Inventory Centre') {
+      return _buildInventoryCentrePage();
+    }
+    if (_selected == 'Item List' ||
+        _selected == 'Inventory Site List' ||
+        _selected == 'Adjust Quantity/Value on Hand' ||
+        _selected == 'Transfer Inventory' ||
+        _selected == 'Receive Item') {
+      return _buildInventoryOperationPage(_selected);
+    }
     return _buildSectionPlaceholder();
   }
 
@@ -377,6 +387,740 @@ class _DesktopHomeState extends State<DesktopHome> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildInventoryCentrePage() {
+    return Column(
+      children: [
+        Container(
+          height: 34,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: Color(0xFFBDBDBD))),
+          ),
+          child: Row(
+            children: [
+              const Text(
+                'Notifications',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+              ),
+              const Spacer(),
+              IconButton(
+                onPressed: () => _showMessage('No new notifications'),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                icon: const Icon(Icons.notifications_none, size: 16),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: _InventoryCentreView(
+            onBack: () => setState(() => _selected = 'Dashboard'),
+            onDeposit: () => _showMessage('Deposit inventory'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInventoryOperationPage(String title) {
+    final descriptions = <String, String>{
+      'Item List':
+          'Browse your product catalogue and current stock at a glance.',
+      'Inventory Site List':
+          'View the locations where your inventory is stored.',
+      'Adjust Quantity/Value on Hand':
+          'Correct stock counts and values with a traceable adjustment.',
+      'Transfer Inventory': 'Move selected items from one site to another.',
+      'Receive Item': 'Record incoming stock and add it to an inventory site.',
+    };
+
+    return Column(
+      children: [
+        _buildNotificationStrip(),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 760;
+              final padding = compact ? 14.0 : 26.0;
+              return SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(padding, 20, padding, 28),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1180),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            color: _ink,
+                            fontSize: _responsiveFont(context, 22),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          descriptions[title] ??
+                              'Manage inventory for your store.',
+                          style: const TextStyle(color: _muted, fontSize: 13),
+                        ),
+                        const SizedBox(height: 20),
+                        if (title == 'Item List')
+                          _buildInventoryItemsList(compact),
+                        if (title == 'Inventory Site List')
+                          _buildInventorySitesList(compact),
+                        if (title == 'Adjust Quantity/Value on Hand')
+                          _buildInventoryAdjustment(compact),
+                        if (title == 'Transfer Inventory')
+                          _buildInventoryTransfer(compact),
+                        if (title == 'Receive Item')
+                          _buildInventoryReceiving(compact),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInventoryItemsList(bool compact) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            _inventoryMetric(
+              'Items in catalogue',
+              '${_inventoryItems.length}',
+              Icons.inventory_2_outlined,
+            ),
+            _inventoryMetric(
+              'Low stock',
+              '${_inventoryItems.where((item) => (int.tryParse(item.quantity) ?? 0) > 0 && (int.tryParse(item.quantity) ?? 0) <= 10).length}',
+              Icons.warning_amber_rounded,
+            ),
+            _inventoryMetric(
+              'Out of stock',
+              '${_inventoryItems.where((item) => (int.tryParse(item.quantity) ?? 0) == 0).length}',
+              Icons.remove_shopping_cart_outlined,
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        _inventoryPanel(
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 42,
+                      child: TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Search item name or SKU',
+                          prefixIcon: const Icon(
+                            Icons.search_rounded,
+                            size: 20,
+                          ),
+                          filled: true,
+                          fillColor: const Color(0xFFF7F8F7),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFE1E5E3),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFE1E5E3),
+                            ),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 10,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (!compact) ...[
+                    const SizedBox(width: 10),
+                    SizedBox(
+                      width: 170,
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _inventorySites.first,
+                        isDense: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Inventory site',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: [
+                          for (final site in _inventorySites)
+                            DropdownMenuItem(value: site, child: Text(site)),
+                        ],
+                        onChanged: (_) {},
+                      ),
+                    ),
+                  ],
+                  const SizedBox(width: 10),
+                  FilledButton.icon(
+                    onPressed: _showAddInventoryItemDialog,
+                    icon: const Icon(Icons.add_rounded, size: 18),
+                    label: const Text('Add Item'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.black,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _inventoryTable(
+                columns: const [
+                  'SKU',
+                  'Item name',
+                  'On hand',
+                  'Unit value',
+                  'Stock status',
+                ],
+                rows: [
+                  for (final item in _inventoryItems)
+                    [
+                      item.sku,
+                      item.name,
+                      item.quantity,
+                      item.value,
+                      (int.tryParse(item.quantity) ?? 0) == 0
+                          ? 'Out of stock'
+                          : (int.tryParse(item.quantity) ?? 0) <= 10
+                          ? 'Low stock'
+                          : 'In stock',
+                    ],
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInventorySitesList(bool compact) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            _inventoryMetric(
+              'Active sites',
+              '${_inventorySites.length}',
+              Icons.location_on_outlined,
+            ),
+            _inventoryMetric(
+              'Items tracked',
+              '${_inventoryItems.length}',
+              Icons.inventory_2_outlined,
+            ),
+            _inventoryMetric(
+              'Primary site',
+              _inventorySites.first,
+              Icons.storefront_outlined,
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        _inventoryPanel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Inventory locations',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  FilledButton.icon(
+                    onPressed: _showAddInventorySiteDialog,
+                    icon: const Icon(Icons.add_location_alt_outlined, size: 18),
+                    label: const Text('Add Site'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.black,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _inventoryTable(
+                columns: const [
+                  'Site name',
+                  'Site type',
+                  'Items stocked',
+                  'Status',
+                ],
+                rows: [
+                  for (var index = 0; index < _inventorySites.length; index++)
+                    [
+                      _inventorySites[index],
+                      index == 0 ? 'Primary location' : 'Stock location',
+                      '${_inventoryItems.length}',
+                      'Active',
+                    ],
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInventoryAdjustment(bool compact) {
+    final controlWidth = compact ? double.infinity : 280.0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            _inventoryMetric(
+              'Selected item',
+              _inventoryItems.first.name,
+              Icons.inventory_2_outlined,
+            ),
+            _inventoryMetric(
+              'Quantity on hand',
+              _inventoryItems.first.quantity,
+              Icons.numbers_rounded,
+            ),
+            _inventoryMetric(
+              'Current value',
+              _inventoryItems.first.value,
+              Icons.payments_outlined,
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        _inventoryPanel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Adjustment details',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 14,
+                runSpacing: 12,
+                children: [
+                  SizedBox(
+                    width: controlWidth,
+                    child: _inventoryDropdown(
+                      'Item',
+                      _inventoryItems.map((item) => item.name).toList(),
+                    ),
+                  ),
+                  SizedBox(
+                    width: controlWidth,
+                    child: _inventoryDropdown(
+                      'Inventory site',
+                      _inventorySites,
+                    ),
+                  ),
+                  SizedBox(
+                    width: controlWidth,
+                    child: _inventoryDropdown('Adjustment type', const [
+                      'Quantity adjustment',
+                      'Value adjustment',
+                    ]),
+                  ),
+                  SizedBox(
+                    width: controlWidth,
+                    child: _inventoryTextField(
+                      'New quantity on hand',
+                      numeric: true,
+                    ),
+                  ),
+                  SizedBox(
+                    width: controlWidth,
+                    child: _inventoryTextField('New unit value', numeric: true),
+                  ),
+                  SizedBox(
+                    width: compact ? double.infinity : 574,
+                    child: _inventoryTextField('Reason / note', maxLines: 2),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Align(
+                alignment: Alignment.centerRight,
+                child: FilledButton.icon(
+                  onPressed: () =>
+                      _showMessage('Inventory adjustment recorded.'),
+                  icon: const Icon(Icons.save_outlined, size: 18),
+                  label: const Text('Save Adjustment'),
+                  style: FilledButton.styleFrom(backgroundColor: Colors.black),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInventoryTransfer(bool compact) {
+    final siteWidth = compact ? double.infinity : 330.0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _inventoryPanel(
+          child: Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 16,
+            runSpacing: 12,
+            children: [
+              SizedBox(
+                width: siteWidth,
+                child: _inventoryDropdown('From site', _inventorySites),
+              ),
+              Icon(Icons.arrow_forward_rounded, color: _green, size: 24),
+              SizedBox(
+                width: siteWidth,
+                child: _inventoryDropdown('To site', _inventorySites),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        _inventoryPanel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Items to transfer',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () =>
+                        _showMessage('Choose an item from the inventory list.'),
+                    icon: const Icon(Icons.add_rounded, size: 18),
+                    label: const Text('Add Item'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _inventoryTable(
+                columns: const [
+                  'SKU',
+                  'Item name',
+                  'Available',
+                  'Transfer quantity',
+                  'Unit value',
+                ],
+                rows: [
+                  for (final item in _inventoryItems.take(3))
+                    [item.sku, item.name, item.quantity, '0', item.value],
+                ],
+              ),
+              const SizedBox(height: 16),
+              _inventoryTextField('Transfer note (optional)', maxLines: 2),
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerRight,
+                child: FilledButton.icon(
+                  onPressed: () => _showMessage('Inventory transfer recorded.'),
+                  icon: const Icon(Icons.swap_horiz_rounded, size: 18),
+                  label: const Text('Transfer Inventory'),
+                  style: FilledButton.styleFrom(backgroundColor: Colors.black),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInventoryReceiving(bool compact) {
+    final fieldWidth = compact ? double.infinity : 250.0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _inventoryPanel(
+          child: Wrap(
+            spacing: 14,
+            runSpacing: 12,
+            children: [
+              SizedBox(
+                width: fieldWidth,
+                child: _inventoryTextField('Supplier / vendor'),
+              ),
+              SizedBox(
+                width: fieldWidth,
+                child: _inventoryTextField('Supplier reference'),
+              ),
+              SizedBox(
+                width: fieldWidth,
+                child: _inventoryDropdown('Receiving site', _inventorySites),
+              ),
+              SizedBox(
+                width: fieldWidth,
+                child: _inventoryTextField(
+                  'Date received',
+                  initialValue: '14/06/2026',
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        _inventoryPanel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Received items',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () =>
+                        _showMessage('Choose an item to add to this receipt.'),
+                    icon: const Icon(Icons.add_rounded, size: 18),
+                    label: const Text('Add Item'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _inventoryTable(
+                columns: const [
+                  'SKU',
+                  'Item name',
+                  'Quantity received',
+                  'Unit cost',
+                  'Line total',
+                ],
+                rows: [
+                  for (final item in _inventoryItems.take(3))
+                    [item.sku, item.name, '0', item.value, item.value],
+                ],
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () =>
+                        setState(() => _selected = 'Inventory Centre'),
+                    icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                    label: const Text('Back'),
+                  ),
+                  const Spacer(),
+                  FilledButton.icon(
+                    onPressed: () => _showMessage('Received stock recorded.'),
+                    icon: const Icon(Icons.check_rounded, size: 18),
+                    label: const Text('Save Receipt'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.black,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _inventoryMetric(String label, String value, IconData icon) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 190),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFE2E6E4)),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEAF4F0),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Icon(icon, color: _green, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(color: _muted, fontSize: 11)),
+              const SizedBox(height: 3),
+              Text(
+                value,
+                style: const TextStyle(
+                  color: _ink,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _inventoryPanel({required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFD9DEDC)),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _inventoryTable({
+    required List<String> columns,
+    required List<List<String>> rows,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFFBDBDBD)),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          headingRowColor: const WidgetStatePropertyAll(Colors.black),
+          dataRowMinHeight: 44,
+          dataRowMaxHeight: 52,
+          headingTextStyle: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 12,
+          ),
+          columns: [
+            for (final column in columns) DataColumn(label: Text(column)),
+          ],
+          rows: [
+            for (final row in rows)
+              DataRow(
+                cells: [
+                  for (var index = 0; index < row.length; index++)
+                    DataCell(
+                      index == row.length - 1 &&
+                              (row[index] == 'Low stock' ||
+                                  row[index] == 'Out of stock' ||
+                                  row[index] == 'In stock' ||
+                                  row[index] == 'Active')
+                          ? _inventoryStatus(row[index])
+                          : Text(row[index]),
+                    ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _inventoryStatus(String status) {
+    final color = status == 'Out of stock'
+        ? const Color(0xFFFCE8E8)
+        : status == 'Low stock'
+        ? const Color(0xFFFFF3D6)
+        : const Color(0xFFE5F3EC);
+    final textColor = status == 'Out of stock'
+        ? const Color(0xFFB42318)
+        : status == 'Low stock'
+        ? const Color(0xFF8A5A00)
+        : _green;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Text(
+        status,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _inventoryDropdown(String label, List<String> values) {
+    return DropdownButtonFormField<String>(
+      initialValue: values.first,
+      isDense: true,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
+      items: [
+        for (final value in values)
+          DropdownMenuItem(value: value, child: Text(value)),
+      ],
+      onChanged: (_) {},
+    );
+  }
+
+  Widget _inventoryTextField(
+    String label, {
+    bool numeric = false,
+    int maxLines = 1,
+    String? initialValue,
+  }) {
+    return TextFormField(
+      initialValue: initialValue,
+      maxLines: maxLines,
+      keyboardType: numeric
+          ? const TextInputType.numberWithOptions(decimal: true)
+          : TextInputType.text,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
     );
   }
 
@@ -518,6 +1262,96 @@ class _DesktopHomeState extends State<DesktopHome> {
         ],
       ),
     );
+  }
+
+  Future<void> _showAddInventoryItemDialog() async {
+    final skuController = TextEditingController();
+    final nameController = TextEditingController();
+    final quantityController = TextEditingController(text: '0');
+    final valueController = TextEditingController(text: '0.00');
+    final shouldSave = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add inventory item'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: skuController,
+              decoration: const InputDecoration(labelText: 'SKU'),
+            ),
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Item name'),
+            ),
+            TextField(
+              controller: quantityController,
+              decoration: const InputDecoration(labelText: 'Quantity on hand'),
+            ),
+            TextField(
+              controller: valueController,
+              decoration: const InputDecoration(labelText: 'Unit value'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Save Item'),
+          ),
+        ],
+      ),
+    );
+    if (shouldSave == true && mounted) {
+      setState(
+        () => _inventoryItems.add(
+          _InventoryRow(
+            skuController.text,
+            nameController.text,
+            quantityController.text,
+            '\$${valueController.text}',
+          ),
+        ),
+      );
+      _showMessage('Inventory item added.');
+    }
+    skuController.dispose();
+    nameController.dispose();
+    quantityController.dispose();
+    valueController.dispose();
+  }
+
+  Future<void> _showAddInventorySiteDialog() async {
+    final controller = TextEditingController();
+    final shouldSave = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add inventory site'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(labelText: 'Site name'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Save Site'),
+          ),
+        ],
+      ),
+    );
+    if (shouldSave == true && controller.text.trim().isNotEmpty && mounted) {
+      setState(() => _inventorySites.add(controller.text.trim()));
+      _showMessage('Inventory site added.');
+    }
+    controller.dispose();
   }
 
   void _showMessage(String message) {
@@ -764,6 +1598,433 @@ class _DesktopHomeState extends State<DesktopHome> {
     );
     if (shouldLogout == true && context.mounted) Navigator.pop(context);
   }
+}
+
+class _InventoryCentreView extends StatefulWidget {
+  final VoidCallback onBack;
+  final VoidCallback onDeposit;
+
+  const _InventoryCentreView({required this.onBack, required this.onDeposit});
+
+  @override
+  State<_InventoryCentreView> createState() => _InventoryCentreViewState();
+}
+
+class _InventoryCentreViewState extends State<_InventoryCentreView>
+    with _ResponsiveTextStyles {
+  static const _items = [
+    _InventoryProduct('Lorem Ipsum', 30000, 30000),
+    _InventoryProduct('Premium White A4', 84, 1250),
+    _InventoryProduct('Blue Pen', 145, 250),
+    _InventoryProduct('Exercise Book', 62, 900),
+    _InventoryProduct('Stapler', 18, 3200),
+  ];
+  static const _locations = ['Main Store', 'Warehouse', 'Branch 2'];
+
+  String _location = _locations.first;
+  _InventoryProduct _selected = _items.first;
+  String _transactionFilter = 'All';
+  DateTime _transactionDate = DateTime(2026, 6, 14);
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 760;
+        final horizontalPadding = compact ? 14.0 : 24.0;
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            14,
+            horizontalPadding,
+            18,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Inventory Centre',
+                style: _responsiveTextStyle(
+                  context,
+                  size: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Text(
+                    'Location',
+                    style: _responsiveTextStyle(context, size: 10),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 180,
+                    height: 30,
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _location,
+                      isDense: true,
+                      decoration: _billInputDecoration(),
+                      items: _locations
+                          .map(
+                            (location) => DropdownMenuItem(
+                              value: location,
+                              child: Text(
+                                location,
+                                style: const TextStyle(fontSize: 10),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        if (value != null) setState(() => _location = value);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (compact)
+                Column(
+                  children: [
+                    SizedBox(height: 230, child: _buildProductList()),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 320,
+                      child: _buildProductAndTransactions(),
+                    ),
+                  ],
+                )
+              else
+                SizedBox(
+                  height: 430,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(width: 280, child: _buildProductList()),
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildProductAndTransactions()),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  OutlinedButton(
+                    onPressed: widget.onBack,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.black,
+                      side: const BorderSide(color: Color(0xFFBDBDBD)),
+                      minimumSize: const Size(76, 34),
+                    ),
+                    child: Text(
+                      'Back',
+                      style: _responsiveTextStyle(context, size: 10),
+                    ),
+                  ),
+                  const Spacer(),
+                  FilledButton(
+                    onPressed: widget.onDeposit,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(80, 34),
+                    ),
+                    child: Text(
+                      'Deposit',
+                      style: _responsiveTextStyle(context, size: 10),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildProductList() {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFFBDBDBD)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            height: 26,
+            color: Colors.black,
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: const Row(
+              children: [
+                Expanded(
+                  flex: 4,
+                  child: Text(
+                    'Item Name',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    'Qty',
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    'Price',
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ..._items.map((product) {
+            final selected = product == _selected;
+            return Material(
+              color: selected ? const Color(0xFFE3E3E3) : Colors.white,
+              child: InkWell(
+                onTap: () => setState(() => _selected = product),
+                child: Container(
+                  height: 24,
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  decoration: const BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: Color(0xFFE3E3E3)),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 4,
+                        child: Text(
+                          product.name,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 9),
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          '${product.quantity}',
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(fontSize: 9),
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          product.price.toStringAsGrouped(),
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(fontSize: 9),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+          const Expanded(
+            child: DecoratedBox(decoration: BoxDecoration(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductAndTransactions() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFFBDBDBD)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _selected.name,
+                style: _responsiveTextStyle(
+                  context,
+                  size: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Quantity In Stock',
+                style: _responsiveTextStyle(context, size: 10),
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  '${_selected.quantity}',
+                  style: const TextStyle(fontSize: 10),
+                ),
+              ),
+              Text('Price', style: _responsiveTextStyle(context, size: 10)),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  _selected.price.toStringAsGrouped(),
+                  style: const TextStyle(fontSize: 10),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Transaction Details',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+              ),
+            ),
+            DropdownButton<String>(
+              value: _transactionFilter,
+              isDense: true,
+              underline: const SizedBox.shrink(),
+              style: const TextStyle(color: Colors.black, fontSize: 9),
+              items: const ['All', 'Sales', 'Restock', 'Adjustment']
+                  .map(
+                    (value) =>
+                        DropdownMenuItem(value: value, child: Text(value)),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                if (value != null) setState(() => _transactionFilter = value);
+              },
+            ),
+            const SizedBox(width: 8),
+            TextButton.icon(
+              onPressed: _chooseTransactionDate,
+              icon: const Icon(Icons.calendar_today_outlined, size: 11),
+              label: Text(
+                '${_transactionDate.day}/${_transactionDate.month}/${_transactionDate.year}',
+                style: const TextStyle(fontSize: 9),
+              ),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+              ),
+            ),
+          ],
+        ),
+        Expanded(child: _buildTransactionsTable()),
+      ],
+    );
+  }
+
+  Widget _buildTransactionsTable() {
+    const headerStyle = TextStyle(
+      color: Colors.white,
+      fontSize: 8,
+      fontWeight: FontWeight.w600,
+    );
+    const columns = [
+      Expanded(flex: 2, child: Text('Type', style: headerStyle)),
+      Expanded(flex: 2, child: Text('Date', style: headerStyle)),
+      Expanded(flex: 2, child: Text('Quantity', style: headerStyle)),
+      Expanded(flex: 2, child: Text('Amount', style: headerStyle)),
+      Expanded(flex: 2, child: Text('Balance', style: headerStyle)),
+      Expanded(flex: 2, child: Text('Customer', style: headerStyle)),
+      Expanded(flex: 2, child: Text('Track ID', style: headerStyle)),
+    ];
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFFBDBDBD)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            height: 24,
+            color: Colors.black,
+            padding: const EdgeInsets.symmetric(horizontal: 5),
+            child: const Row(children: columns),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: 12,
+              itemBuilder: (context, index) => Container(
+                height: 20,
+                color: index.isEven ? Colors.white : const Color(0xFFECECEC),
+                padding: const EdgeInsets.symmetric(horizontal: 5),
+                child: const Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Text('', style: TextStyle(fontSize: 8)),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text('', style: TextStyle(fontSize: 8)),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text('', style: TextStyle(fontSize: 8)),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text('', style: TextStyle(fontSize: 8)),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text('', style: TextStyle(fontSize: 8)),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text('', style: TextStyle(fontSize: 8)),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text('', style: TextStyle(fontSize: 8)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _chooseTransactionDate() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _transactionDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+    );
+    if (date != null) setState(() => _transactionDate = date);
+  }
+}
+
+class _InventoryProduct {
+  final String name;
+  final int quantity;
+  final int price;
+
+  const _InventoryProduct(this.name, this.quantity, this.price);
 }
 
 class _InvoiceHistoryView extends StatefulWidget {
