@@ -320,6 +320,12 @@ class _DesktopHomeState extends State<DesktopHome> {
     if (_selected == 'Refund') {
       return _buildRefundPage();
     }
+    if (_selected == 'Add Staff') {
+      return _buildStaffPage();
+    }
+    if (_selected == 'View All Users') {
+      return _buildAllUsersPage();
+    }
     return _buildSectionPlaceholder();
   }
 
@@ -1432,6 +1438,78 @@ class _DesktopHomeState extends State<DesktopHome> {
     );
   }
 
+  Widget _buildStaffPage() {
+    return Column(
+      children: [
+        Container(
+          height: 34,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: Color(0xFFBDBDBD))),
+          ),
+          child: Row(
+            children: [
+              const Text(
+                'Notifications',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+              ),
+              const Spacer(),
+              IconButton(
+                onPressed: () => _showMessage('No new notifications'),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                icon: const Icon(Icons.notifications_none, size: 16),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: _StaffForm(
+            onBack: () => setState(() => _selected = 'Dashboard'),
+            onMessage: _showMessage,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAllUsersPage() {
+    return Column(
+      children: [
+        Container(
+          height: 34,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: Color(0xFFBDBDBD))),
+          ),
+          child: Row(
+            children: [
+              const Text(
+                'Notifications',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+              ),
+              const Spacer(),
+              IconButton(
+                onPressed: () => _showMessage('No new notifications'),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                icon: const Icon(Icons.notifications_none, size: 16),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: _AllUsersView(
+            onBack: () => setState(() => _selected = 'Staff'),
+            onAddStaff: () => setState(() => _selected = 'Add Staff'),
+          ),
+        ),
+      ],
+    );
+  }
+
   void _showMessage(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -1920,6 +1998,458 @@ class _NewCustomerFormState extends State<_NewCustomerForm>
     _nameController.clear();
     _phoneController.clear();
     _locationController.clear();
+  }
+}
+
+class _StaffForm extends StatefulWidget {
+  final VoidCallback onBack;
+  final ValueChanged<String> onMessage;
+
+  const _StaffForm({required this.onBack, required this.onMessage});
+
+  @override
+  State<_StaffForm> createState() => _StaffFormState();
+}
+
+class _StaffFormState extends State<_StaffForm> with _ResponsiveTextStyles {
+  static const _roles = [
+    'Select a role',
+    'Sales Manager',
+    'Cashier',
+    'Inventory Manager',
+    'Administrator',
+  ];
+
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _addressController = TextEditingController();
+  String _selectedRole = _roles.first;
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _addressController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 760;
+        final pagePadding = compact ? 16.0 : 28.0;
+        return SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(pagePadding, 22, pagePadding, 24),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Staff',
+                    style: _responsiveTextStyle(
+                      context,
+                      size: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  Text(
+                    'Add a staff member and assign their access role.',
+                    style: _responsiveTextStyle(
+                      context,
+                      size: 11,
+                      color: const Color(0xFF777777),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: const Color(0xFFD0D0D0)),
+                      borderRadius: BorderRadius.circular(6),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x10000000),
+                          blurRadius: 3,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          'Staff details',
+                          style: _responsiveTextStyle(
+                            context,
+                            size: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Wrap(
+                          spacing: 16,
+                          runSpacing: 12,
+                          children: [
+                            _staffField(
+                              'First name',
+                              _firstNameController,
+                              width: compact ? 290 : 390,
+                            ),
+                            _staffField(
+                              'Last name',
+                              _lastNameController,
+                              width: compact ? 290 : 390,
+                            ),
+                            _staffField(
+                              'Email',
+                              _emailController,
+                              width: compact ? 290 : 390,
+                              keyboardType: TextInputType.emailAddress,
+                            ),
+                            _staffField(
+                              'Phone',
+                              _phoneController,
+                              width: compact ? 290 : 390,
+                              keyboardType: TextInputType.phone,
+                            ),
+                            _staffField(
+                              'Address',
+                              _addressController,
+                              width: compact ? 290 : 796,
+                              maxLines: 2,
+                            ),
+                            SizedBox(
+                              width: compact ? 290 : 390,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Role',
+                                    style: _responsiveTextStyle(
+                                      context,
+                                      size: 10,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  DropdownButtonFormField<String>(
+                                    initialValue: _selectedRole,
+                                    isDense: true,
+                                    decoration: _billInputDecoration(),
+                                    items: _roles
+                                        .map(
+                                          (role) => DropdownMenuItem(
+                                            value: role,
+                                            child: Text(
+                                              role,
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                              ),
+                                            ),
+                                          ),
+                                        )
+                                        .toList(),
+                                    onChanged: (role) {
+                                      if (role != null) {
+                                        setState(() => _selectedRole = role);
+                                      }
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      OutlinedButton(
+                        onPressed: widget.onBack,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.black,
+                          side: const BorderSide(color: Color(0xFFBDBDBD)),
+                          minimumSize: const Size(76, 36),
+                        ),
+                        child: const Text(
+                          'Back',
+                          style: TextStyle(fontSize: 10),
+                        ),
+                      ),
+                      const Spacer(),
+                      FilledButton(
+                        onPressed: _save,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(84, 36),
+                        ),
+                        child: const Text(
+                          'Save',
+                          style: TextStyle(fontSize: 10),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      OutlinedButton(
+                        onPressed: _clear,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.black,
+                          side: const BorderSide(color: Color(0xFFBDBDBD)),
+                          minimumSize: const Size(84, 36),
+                        ),
+                        child: const Text(
+                          'Clear',
+                          style: TextStyle(fontSize: 10),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _staffField(
+    String label,
+    TextEditingController controller, {
+    required double width,
+    TextInputType keyboardType = TextInputType.text,
+    int maxLines = 1,
+  }) {
+    return SizedBox(
+      width: width,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: _responsiveTextStyle(context, size: 10)),
+          const SizedBox(height: 6),
+          TextField(
+            controller: controller,
+            keyboardType: keyboardType,
+            maxLines: maxLines,
+            decoration: _billInputDecoration(),
+            style: _responsiveTextStyle(context, size: 11),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _save() {
+    if (_firstNameController.text.trim().isEmpty ||
+        _lastNameController.text.trim().isEmpty ||
+        _emailController.text.trim().isEmpty ||
+        _selectedRole == _roles.first) {
+      widget.onMessage('Enter first name, last name, email, and role to save.');
+      return;
+    }
+    widget.onMessage('Staff details saved');
+  }
+
+  void _clear() {
+    _firstNameController.clear();
+    _lastNameController.clear();
+    _emailController.clear();
+    _phoneController.clear();
+    _addressController.clear();
+    setState(() => _selectedRole = _roles.first);
+  }
+}
+
+class _AllUsersView extends StatelessWidget {
+  final VoidCallback onBack;
+  final VoidCallback onAddStaff;
+
+  const _AllUsersView({required this.onBack, required this.onAddStaff});
+
+  static const _users = [
+    _StaffUser(
+      'Alex Morgan',
+      'alex.morgan@example.com',
+      '+1 555 010 1001',
+      'Sales Manager',
+    ),
+    _StaffUser(
+      'Jordan Lee',
+      'jordan.lee@example.com',
+      '+1 555 010 1002',
+      'Cashier',
+    ),
+    _StaffUser(
+      'Taylor Brooks',
+      'taylor.brooks@example.com',
+      '+1 555 010 1003',
+      'Inventory Manager',
+    ),
+    _StaffUser(
+      'Casey Rivera',
+      'casey.rivera@example.com',
+      '+1 555 010 1004',
+      'Cashier',
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 760;
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(compact ? 16 : 28),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1050),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'View All Users',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        SizedBox(height: 5),
+                        Text(
+                          'Staff accounts and assigned roles',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF777777),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  FilledButton.icon(
+                    onPressed: onAddStaff,
+                    icon: const Icon(Icons.person_add_alt_1, size: 15),
+                    label: const Text(
+                      'Add Staff',
+                      style: TextStyle(fontSize: 10),
+                    ),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: const Color(0xFFD0D0D0)),
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: Column(
+                  children: [
+                    const _UsersTableHeader(),
+                    for (var index = 0; index < _users.length; index++)
+                      _UsersTableRow(user: _users[index], shaded: index.isOdd),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton(
+                  onPressed: onBack,
+                  child: const Text('Back', style: TextStyle(fontSize: 10)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StaffUser {
+  final String name;
+  final String email;
+  final String phone;
+  final String role;
+
+  const _StaffUser(this.name, this.email, this.phone, this.role);
+}
+
+class _UsersTableHeader extends StatelessWidget {
+  const _UsersTableHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    const headerStyle = TextStyle(
+      color: Colors.white,
+      fontSize: 10,
+      fontWeight: FontWeight.w600,
+    );
+    return Container(
+      height: 36,
+      color: Colors.black,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: const Row(
+        children: [
+          Expanded(flex: 2, child: Text('Name', style: headerStyle)),
+          Expanded(flex: 3, child: Text('Email', style: headerStyle)),
+          Expanded(flex: 2, child: Text('Phone', style: headerStyle)),
+          Expanded(flex: 2, child: Text('Role', style: headerStyle)),
+        ],
+      ),
+    );
+  }
+}
+
+class _UsersTableRow extends StatelessWidget {
+  final _StaffUser user;
+  final bool shaded;
+
+  const _UsersTableRow({required this.user, required this.shaded});
+
+  @override
+  Widget build(BuildContext context) {
+    const textStyle = TextStyle(fontSize: 10);
+    return Container(
+      constraints: const BoxConstraints(minHeight: 40),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: shaded ? const Color(0xFFF1F1F1) : Colors.white,
+        border: const Border(top: BorderSide(color: Color(0xFFE0E0E0))),
+      ),
+      child: Row(
+        children: [
+          Expanded(flex: 2, child: Text(user.name, style: textStyle)),
+          Expanded(
+            flex: 3,
+            child: Text(
+              user.email,
+              style: textStyle,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Expanded(flex: 2, child: Text(user.phone, style: textStyle)),
+          Expanded(flex: 2, child: Text(user.role, style: textStyle)),
+        ],
+      ),
+    );
   }
 }
 
