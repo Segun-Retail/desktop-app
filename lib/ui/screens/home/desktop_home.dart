@@ -317,6 +317,9 @@ class _DesktopHomeState extends State<DesktopHome> {
     if (_selected == 'New Customer') {
       return _buildNewCustomerPage();
     }
+    if (_selected == 'Refund') {
+      return _buildRefundPage();
+    }
     return _buildSectionPlaceholder();
   }
 
@@ -1357,6 +1360,42 @@ class _DesktopHomeState extends State<DesktopHome> {
     controller.dispose();
   }
 
+  Widget _buildRefundPage() {
+    return Column(
+      children: [
+        Container(
+          height: 34,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: Color(0xFFBDBDBD))),
+          ),
+          child: Row(
+            children: [
+              const Text(
+                'Notifications',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+              ),
+              const Spacer(),
+              IconButton(
+                onPressed: () => _showMessage('No new notifications'),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                icon: const Icon(Icons.notifications_none, size: 16),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: _RefundForm(
+            onBack: () => setState(() => _selected = 'Dashboard'),
+            onMessage: _showMessage,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildNewCustomerPage() {
     return Column(
       children: [
@@ -1881,6 +1920,425 @@ class _NewCustomerFormState extends State<_NewCustomerForm>
     _nameController.clear();
     _phoneController.clear();
     _locationController.clear();
+  }
+}
+
+class _RefundForm extends StatefulWidget {
+  final VoidCallback onBack;
+  final ValueChanged<String> onMessage;
+
+  const _RefundForm({required this.onBack, required this.onMessage});
+
+  @override
+  State<_RefundForm> createState() => _RefundFormState();
+}
+
+class _RefundFormState extends State<_RefundForm> {
+  static const _customers = ['Mr. Mbab', 'Lorem 1', 'Ipsum 1', 'Lorem 2'];
+
+  final _creditController = TextEditingController();
+  final _dateController = TextEditingController(text: '14/06/2026');
+  final _amountControllers = List.generate(5, (_) => TextEditingController());
+  final _quantities = List<double>.filled(5, 0);
+  final _rates = List<double>.filled(5, 0);
+  String? _customer;
+
+  double get _total => List.generate(
+    _amountControllers.length,
+    (index) => _quantities[index] * _rates[index],
+  ).fold(0, (total, amount) => total + amount);
+
+  @override
+  void dispose() {
+    _creditController.dispose();
+    _dateController.dispose();
+    for (final controller in _amountControllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 760;
+        final padding = compact ? 14.0 : 24.0;
+        return SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(padding, 18, padding, 20),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1000),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Refund',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 10),
+                  _buildRefundDetails(),
+                  const SizedBox(height: 10),
+                  _buildRefundTable(),
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'Total:',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _total.toStringAsGrouped(),
+                          style: const TextStyle(
+                            fontSize: 21,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      OutlinedButton(
+                        onPressed: widget.onBack,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.black,
+                          side: const BorderSide(color: Color(0xFFBDBDBD)),
+                          minimumSize: const Size(70, 32),
+                        ),
+                        child: const Text(
+                          'Back',
+                          style: TextStyle(fontSize: 10),
+                        ),
+                      ),
+                      const Spacer(),
+                      _refundAction(
+                        'Save',
+                        () => widget.onMessage('Refund saved'),
+                      ),
+                      const SizedBox(width: 8),
+                      _refundAction('Save & New', _clearForm),
+                      const SizedBox(width: 8),
+                      OutlinedButton(
+                        onPressed: widget.onBack,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.black,
+                          side: const BorderSide(color: Color(0xFFBDBDBD)),
+                          minimumSize: const Size(70, 32),
+                        ),
+                        child: const Text(
+                          'Close',
+                          style: TextStyle(fontSize: 10),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildRefundDetails() {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFFD0D0D0)),
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Wrap(
+        spacing: 20,
+        runSpacing: 8,
+        alignment: WrapAlignment.spaceBetween,
+        children: [
+          SizedBox(
+            width: 310,
+            child: Column(
+              children: [
+                _labelledControl(
+                  'Customer',
+                  DropdownButtonFormField<String>(
+                    initialValue: _customer,
+                    isDense: true,
+                    decoration: _billInputDecoration(),
+                    items: _customers
+                        .map(
+                          (name) => DropdownMenuItem(
+                            value: name,
+                            child: Text(
+                              name,
+                              style: const TextStyle(fontSize: 10),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) => setState(() => _customer = value),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                _labelledControl(
+                  'Credit No.',
+                  TextField(
+                    controller: _creditController,
+                    decoration: _billInputDecoration(),
+                    style: const TextStyle(fontSize: 10),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            width: 250,
+            child: _labelledControl(
+              'Date',
+              TextField(
+                controller: _dateController,
+                readOnly: true,
+                onTap: _chooseDate,
+                decoration: _billInputDecoration().copyWith(
+                  suffixIcon: const Icon(
+                    Icons.calendar_today_outlined,
+                    size: 14,
+                  ),
+                ),
+                style: const TextStyle(fontSize: 10),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _labelledControl(String label, Widget control) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 68,
+          child: Text(label, style: const TextStyle(fontSize: 9)),
+        ),
+        Expanded(child: SizedBox(height: 28, child: control)),
+      ],
+    );
+  }
+
+  Widget _buildRefundTable() {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFFBDBDBD)),
+      ),
+      child: Column(
+        children: [
+          const Row(
+            children: [
+              _RefundHeaderCell('Item', flex: 2),
+              _RefundHeaderCell('Description', flex: 2),
+              _RefundHeaderCell('Quantity'),
+              _RefundHeaderCell('Rate'),
+              _RefundHeaderCell('Cost'),
+            ],
+          ),
+          for (var index = 0; index < _amountControllers.length; index++)
+            _RefundEntryRow(
+              key: ValueKey(index),
+              descriptionController: _amountControllers[index],
+              onValuesChanged: (quantity, rate) => setState(() {
+                _quantities[index] = quantity;
+                _rates[index] = rate;
+              }),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _refundAction(String label, VoidCallback onPressed) {
+    return FilledButton(
+      onPressed: onPressed,
+      style: FilledButton.styleFrom(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        minimumSize: const Size(70, 32),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+        textStyle: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600),
+      ),
+      child: Text(label),
+    );
+  }
+
+  Future<void> _chooseDate() async {
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: DateTime(2026, 6, 14),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+    );
+    if (selected != null) {
+      _dateController.text =
+          '${selected.day}/${selected.month}/${selected.year}';
+    }
+  }
+
+  void _clearForm() {
+    setState(() {
+      _customer = null;
+      _creditController.clear();
+      _dateController.text = '14/06/2026';
+      for (final controller in _amountControllers) {
+        controller.clear();
+      }
+      for (var index = 0; index < _quantities.length; index++) {
+        _quantities[index] = 0;
+        _rates[index] = 0;
+      }
+    });
+    widget.onMessage('Ready for a new refund');
+  }
+}
+
+class _RefundHeaderCell extends StatelessWidget {
+  final String label;
+  final int flex;
+
+  const _RefundHeaderCell(this.label, {this.flex = 1});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      flex: flex,
+      child: Container(
+        height: 24,
+        padding: const EdgeInsets.symmetric(horizontal: 5),
+        alignment: Alignment.centerLeft,
+        color: Colors.black,
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 9,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RefundEntryRow extends StatefulWidget {
+  final TextEditingController descriptionController;
+  final void Function(double quantity, double rate) onValuesChanged;
+
+  const _RefundEntryRow({
+    super.key,
+    required this.descriptionController,
+    required this.onValuesChanged,
+  });
+
+  @override
+  State<_RefundEntryRow> createState() => _RefundEntryRowState();
+}
+
+class _RefundEntryRowState extends State<_RefundEntryRow> {
+  final _itemController = TextEditingController();
+  final _quantityController = TextEditingController();
+  final _rateController = TextEditingController();
+
+  void _notifyChanged() {
+    setState(() {});
+    widget.onValuesChanged(
+      double.tryParse(_quantityController.text) ?? 0,
+      double.tryParse(_rateController.text) ?? 0,
+    );
+  }
+
+  @override
+  void dispose() {
+    _itemController.dispose();
+    _quantityController.dispose();
+    _rateController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 28,
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: Color(0xFFDDDDDD))),
+      ),
+      child: Row(
+        children: [
+          _cell(flex: 2, controller: _itemController),
+          _cell(flex: 2, controller: widget.descriptionController),
+          _cell(
+            controller: _quantityController,
+            onChanged: (_) => _notifyChanged(),
+          ),
+          _cell(
+            controller: _rateController,
+            onChanged: (_) => _notifyChanged(),
+          ),
+          Expanded(
+            child: Container(
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.symmetric(horizontal: 5),
+              decoration: const BoxDecoration(
+                border: Border(left: BorderSide(color: Color(0xFFBBBBBB))),
+                color: Colors.white,
+              ),
+              child: Text(
+                ((double.tryParse(_quantityController.text) ?? 0) *
+                        (double.tryParse(_rateController.text) ?? 0))
+                    .toStringAsGrouped(),
+                style: const TextStyle(fontSize: 9),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _cell({
+    int flex = 1,
+    required TextEditingController controller,
+    ValueChanged<String>? onChanged,
+  }) {
+    return Expanded(
+      flex: flex,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(left: BorderSide(color: Color(0xFFBBBBBB))),
+        ),
+        child: TextField(
+          controller: controller,
+          onChanged: onChanged,
+          keyboardType: onChanged == null
+              ? TextInputType.text
+              : const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            border: InputBorder.none,
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(vertical: 7),
+          ),
+          style: const TextStyle(fontSize: 9),
+        ),
+      ),
+    );
   }
 }
 
