@@ -294,25 +294,8 @@ class _DesktopHomeState extends State<DesktopHome> {
   }
 
   Widget _buildSelectedPage() {
-    if (_selected == 'Dashboard') return _buildDashboard();
     if (_selected == 'Create Bill') {
       return _buildCreateBillPage();
-    }
-    if (_selected == 'Invoice History') {
-      return _buildInvoiceHistoryPage();
-    }
-    if (_selected == 'Process Payment') {
-      return _buildPaymentPage();
-    }
-    if (_selected == 'Inventory Centre') {
-      return _buildInventoryCentrePage();
-    }
-    if (_selected == 'Item List' ||
-        _selected == 'Inventory Site List' ||
-        _selected == 'Adjust Quantity/Value on Hand' ||
-        _selected == 'Transfer Inventory' ||
-        _selected == 'Receive Item') {
-      return _buildInventoryOperationPage(_selected);
     }
     if (_selected == 'New Customer') {
       return _buildNewCustomerPage();
@@ -320,13 +303,86 @@ class _DesktopHomeState extends State<DesktopHome> {
     if (_selected == 'Refund') {
       return _buildRefundPage();
     }
-    if (_selected == 'Add Staff') {
+    if (_selected == 'Staff' || _selected == 'Add Staff') {
       return _buildStaffPage();
     }
     if (_selected == 'View All Users') {
       return _buildAllUsersPage();
     }
-    return _buildSectionPlaceholder();
+    if (_selected == 'Inventory Centre') {
+      return _buildInventoryCentrePage();
+    }
+    if (_inventoryPages.contains(_selected)) {
+      return _buildInventoryOperationPage(_selected);
+    }
+    if (_selected == 'Process Payment' || _selected == 'Payment') {
+      return _buildPaymentPage();
+    }
+    if (_selected.startsWith('Invoice History')) {
+      return _buildInvoiceHistoryPage();
+    }
+
+    final isDashboard = _selected == 'Dashboard';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          height: 72,
+          padding: const EdgeInsets.symmetric(horizontal: 34),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: Color(0xFFE9ECEA))),
+          ),
+          child: Row(
+            children: [
+              Text(
+                _selected,
+                style: TextStyle(
+                  color: _ink,
+                  fontSize: _responsiveFont(context, 17),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const Spacer(),
+              if (MediaQuery.sizeOf(context).width >= 900)
+                Container(
+                  width: 260,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF6F7F6),
+                    borderRadius: BorderRadius.circular(9),
+                    border: Border.all(color: const Color(0xFFE8EBE9)),
+                  ),
+                  child: const TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Search anything...',
+                      hintStyle: TextStyle(color: _muted, fontSize: 12),
+                      prefixIcon: Icon(Icons.search, size: 17, color: _muted),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.only(top: 10),
+                    ),
+                  ),
+                ),
+              const SizedBox(width: 18),
+              IconButton(
+                tooltip: 'Notifications',
+                onPressed: () {},
+                icon: const Icon(Icons.notifications_none_rounded, size: 21),
+              ),
+              const SizedBox(width: 8),
+              const CircleAvatar(
+                radius: 17,
+                backgroundColor: Color(0xFFE6F2EE),
+                child: Text('A', style: TextStyle(color: _green, fontSize: 12)),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: isDashboard ? _buildDashboard() : _buildSectionPlaceholder(),
+        ),
+      ],
+    );
   }
 
   Widget _buildCreateBillPage() {
