@@ -18,9 +18,6 @@ jobs:
     name: Django Checks and Tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    defaults:
-      run:
-        working-directory: retail_shop_backend
 
     steps:
       - name: Check backend repository access
@@ -28,6 +25,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.BACKEND_REPO_TOKEN || github.token }}
           BACKEND_REPO: Segun-Retail/retail_shop_backend
+        shell: bash
         run: |
           if gh api "repos/${BACKEND_REPO}" >/dev/null 2>&1; then
             echo "available=true" >> "$GITHUB_OUTPUT"
@@ -65,10 +63,12 @@ jobs:
 
       - name: Install backend dependencies
         if: steps.backend-access.outputs.available == 'true'
+        working-directory: retail_shop_backend
         run: uv sync --frozen
 
       - name: Django system checks
         if: steps.backend-access.outputs.available == 'true'
+        working-directory: retail_shop_backend
         env:
           DJANGO_SECRET_KEY: ci-insecure-secret-key
           DEBUG: "False"
@@ -77,6 +77,7 @@ jobs:
 
       - name: Check for uncommitted migrations
         if: steps.backend-access.outputs.available == 'true'
+        working-directory: retail_shop_backend
         env:
           DJANGO_SECRET_KEY: ci-insecure-secret-key
           DEBUG: "False"
@@ -85,6 +86,7 @@ jobs:
 
       - name: Run backend tests
         if: steps.backend-access.outputs.available == 'true'
+        working-directory: retail_shop_backend
         env:
           DJANGO_SECRET_KEY: ci-insecure-secret-key
           DEBUG: "False"
