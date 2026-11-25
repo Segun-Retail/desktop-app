@@ -49,9 +49,12 @@ Branch naming examples:
 3. **Implement and test locally**
    ```bash
    flutter pub get
-   flutter analyze
+   flutter analyze --no-fatal-infos
    flutter test
-   flutter build apk --debug
+   # Platform build validation as relevant:
+   flutter build apk --debug        # Android
+   flutter build windows            # Windows
+   flutter build ios --no-codesign  # iOS (macOS only)
    ```
 4. **Commit focused changes**
    ```bash
@@ -84,7 +87,7 @@ Before requesting review:
 - [ ] PR description is complete (what/why/how/testing).
 - [ ] `flutter analyze` passes locally.
 - [ ] `flutter test` passes locally.
-- [ ] Relevant build check passes (`flutter build apk --debug` for Android-impacting changes).
+- [ ] Relevant platform build checks pass (Android/Windows/iOS as applicable).
 - [ ] No secrets or unrelated files included.
 - [ ] No unresolved merge conflicts.
 
@@ -113,7 +116,7 @@ Re-run tests after resolving conflicts.
 
 GitHub Actions runs on PRs targeting `main`/`master` and pushes to `main`/`master`.
 
-- **Flutter CI**: `flutter pub get`, `flutter analyze`, `flutter test`, `flutter build apk --debug`.
+- **Flutter CI**: analyze/test + platform builds - Android (`apk --debug`), Windows (`build windows`), iOS (`build ios --no-codesign` on macOS).
 - **Backend CI**: checks out backend repo and runs Django checks, migration check, and tests via `uv`.
 
 Do not merge if required checks fail. If CI fails, inspect logs in the GitHub Actions tab, reproduce locally, fix, and push.

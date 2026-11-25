@@ -8,9 +8,11 @@
 <!-- How was it implemented? Key files, decisions, tradeoffs. -->
 
 ## Testing performed
-- [ ] `flutter analyze`
+- [ ] `flutter analyze --no-fatal-infos`
 - [ ] `flutter test`
-- [ ] `flutter build apk --debug` (or relevant target)
+- [ ] `flutter build apk --debug` (Android, if applicable)
+- [ ] `flutter build windows` (Windows, if applicable)
+- [ ] `flutter build ios --no-codesign` (iOS, macOS only, if applicable)
 - [ ] Manual testing (describe):
 
 ## Related issue or task
