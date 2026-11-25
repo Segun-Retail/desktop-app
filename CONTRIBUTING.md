@@ -53,6 +53,7 @@ Branch naming examples:
    flutter test
    # Platform build validation as relevant:
    flutter build apk --debug        # Android
+   flutter build linux              # Linux
    flutter build windows            # Windows
    flutter build ios --no-codesign  # iOS (macOS only)
    ```
@@ -87,7 +88,7 @@ Before requesting review:
 - [ ] PR description is complete (what/why/how/testing).
 - [ ] `flutter analyze` passes locally.
 - [ ] `flutter test` passes locally.
-- [ ] Relevant platform build checks pass (Android/Windows/iOS as applicable).
+- [ ] Relevant platform build checks pass (Android/Linux/Windows/iOS as applicable).
 - [ ] No secrets or unrelated files included.
 - [ ] No unresolved merge conflicts.
 
@@ -116,7 +117,7 @@ Re-run tests after resolving conflicts.
 
 GitHub Actions runs on PRs targeting `main`/`master` and pushes to `main`/`master`.
 
-- **Flutter CI**: analyze/test + platform builds - Android (`apk --debug`), Windows (`build windows`), iOS (`build ios --no-codesign` on macOS).
+- **Flutter CI**: analyze/test + platform builds - Android (`apk --debug`), Linux (`build linux`), Windows (`build windows`), iOS (`build ios --no-codesign` on macOS). Artifacts are downloadable from the GitHub Actions run.
 - **Backend CI**: checks out backend repo and runs Django checks, migration check, and tests via `uv`.
 
 Do not merge if required checks fail. If CI fails, inspect logs in the GitHub Actions tab, reproduce locally, fix, and push.

@@ -213,11 +213,14 @@ Triggers: PRs to `main`/`master` and pushes to `main`/`master`.
 
 Jobs (platform-aware):
 - **Analyze and Test** (ubuntu-latest): `flutter pub get`, `flutter analyze --no-fatal-infos`, `flutter test`
-- **Build Android (Debug APK)** (ubuntu-latest, needs Analyze and Test): Java 17 + `flutter build apk --debug`
-- **Build Windows** (windows-latest, needs Analyze and Test): `flutter build windows`
-- **Build iOS (no codesign)** (macos-latest, needs Analyze and Test): `flutter build ios --no-codesign`
+- **Build Android (Debug APK)** (ubuntu-latest): Java 17 + `flutter build apk --debug`; uploads `android-debug-apk` artifact
+- **Build Linux** (ubuntu-latest): installs Linux desktop deps + `flutter build linux`; uploads `linux-release-bundle` artifact
+- **Build Windows** (windows-latest): `flutter build windows`; uploads `windows-release-bundle` artifact
+- **Build iOS (no codesign)** (macos-latest): `flutter build ios --no-codesign`; zips and uploads `ios-unsigned-app` artifact
 
 > iOS builds run on macOS runners and use `--no-codesign` for CI validation (no Apple signing secrets required). Release/signing is handled separately in CD.
+
+**Where to download CI builds:** GitHub repo -> **Actions** -> open the workflow run -> scroll to **Artifacts**. Download `android-debug-apk`, `linux-release-bundle`, `windows-release-bundle`, or `ios-unsigned-app`. Artifacts are retained for 14 days and require GitHub repo access. For public/user-facing downloads, use a Release/CD workflow that attaches assets to GitHub Releases.
 
 ### Backend CI (`.github/workflows/backend-ci.yml`)
 
@@ -264,7 +267,7 @@ These settings cannot be fully enforced from code alone. A repository admin shou
 4. Require review from Code Owners (optional, if CODEOWNERS added).
 5. Dismiss stale pull request approvals when new commits are pushed.
 6. Require conversation resolution before merging.
-7. Require status checks to pass before merging. Select the Flutter CI jobs you want required (recommended: `Flutter CI / Analyze and Test`, `Flutter CI / Build Android (Debug APK)`, `Flutter CI / Build Windows`, `Flutter CI / Build iOS (no codesign)`) and `Backend CI / Django Checks and Tests` (after they run at least once).
+7. Require status checks to pass before merging. Select the Flutter CI jobs you want required (recommended: `Flutter CI / Analyze and Test`, `Flutter CI / Build Android (Debug APK)`, `Flutter CI / Build Linux`, `Flutter CI / Build Windows`, `Flutter CI / Build iOS (no codesign)`) and `Backend CI / Django Checks and Tests` (after they run at least once).
 8. Require branches to be up to date before merging (recommended).
 9. Block force pushes and deletions for `main`.
 10. Restrict who can push to matching branches; do not allow direct pushes.
@@ -295,7 +298,7 @@ After resolving, re-run local checks (`flutter analyze`, `flutter test`) before 
 - **Dependency issues**: run `flutter pub get` locally; confirm `pubspec.yaml`/`pubspec.lock` are consistent.
 - **Analyze failures**: run `flutter analyze` locally and fix reported issues.
 - **Test failures**: run `flutter test` locally; inspect widget/test expectations.
-- **Build failures**: reproduce locally with the target build command (`flutter build apk --debug`, `flutter build windows`, or `flutter build ios --no-codesign` on macOS); verify platform toolchains/JDK/Xcode compatibility.
+- **Build failures**: reproduce locally with the target build command (`flutter build apk --debug`, `flutter build linux`, `flutter build windows`, or `flutter build ios --no-codesign` on macOS); verify platform toolchains/JDK/Xcode/GTK compatibility.
 - **Backend checkout fails**: ensure `Segun-Retail/retail_shop_backend` exists and `BACKEND_REPO_TOKEN` secret is set for private repos.
 - **Backend dependency failures**: backend uses `uv sync --frozen`; ensure `uv.lock` is up to date in backend repo.
 - **Migration check fails**: run `uv run python manage.py makemigrations --check --dry-run` in backend and commit missing migrations.
