@@ -1,0 +1,72 @@
+name: Backend CI
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  django-checks:
+    name: Django Checks and Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: retail_shop_backend
+
+    steps:
+      - name: Checkout frontend repository
+        uses: actions/checkout@v4
+        with:
+          path: retail_shop_frontend
+
+      - name: Checkout backend repository
+        uses: actions/checkout@v4
+        with:
+          repository: Segun-Retail/retail_shop_backend
+          path: retail_shop_backend
+          # If backend repo is private, create a repo-scoped PAT secret named
+          # BACKEND_REPO_TOKEN and uncomment:
+          # token: ${{ secrets.BACKEND_REPO_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install backend dependencies
+        run: uv sync --frozen
+
+      - name: Django system checks
+        env:
+          DJANGO_SECRET_KEY: ci-insecure-secret-key
+          DEBUG: "False"
+          ALLOWED_HOSTS: localhost,127.0.0.1
+        run: uv run python manage.py check
+
+      - name: Check for uncommitted migrations
+        env:
+          DJANGO_SECRET_KEY: ci-insecure-secret-key
+          DEBUG: "False"
+          ALLOWED_HOSTS: localhost,127.0.0.1
+        run: uv run python manage.py makemigrations --check --dry-run
+
+      - name: Run backend tests
+        env:
+          DJANGO_SECRET_KEY: ci-insecure-secret-key
+          DEBUG: "False"
+          ALLOWED_HOSTS: localhost,127.0.0.1
+        run: uv run python manage.py test
